@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create ElevenLabs Agent</title>
+</head>
+<body>
+    <h2>Create ElevenLabs Agent</h2>
+
+    <form method="POST" action="/create_agent">
+        <label>Agent Name:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>First Message:</label><br>
+        <input type="text" name="first_message" required><br><br>
+
+        <label>Prompt:</label><br>
+        <input type="text" name="prompt" required><br><br>
+
+        <label>Voice ID:</label><br>
+        <input type="text" name="voice_id" required><br><br>
+
+        <button type="submit">Create Agent</button>
+    </form>
+
+    {% if success %}
+        <h3>✅ Agent Created</h3>
+        <p><strong>Agent ID:</strong> {{ agent.agent_id }}</p>
+        <p><strong>Agent Name:</strong> {{ agent.name }}</p>
+    {% elif error %}
+        <h3>❌ Failed to create agent</h3>
+        <pre>{{ error | tojson(indent=2) }}</pre>
+    {% endif %}
+</body>
+</html>
