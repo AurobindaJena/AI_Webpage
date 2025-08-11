@@ -67,7 +67,7 @@ def create_agent():
 def get_agent():
     return jsonify(latest_agent) if latest_agent else jsonify({"error": "No agent created yet"}), 200
 
-@app.route('/get_agent', methods=['GET'])
+@app.route('/get_apikey', methods=['GET'])
 def get_apikey():
     return jsonify(ELEVEN_API_KEY) if ELEVEN_API_KEY else jsonify({"error": "No API Key"}), 200
 
