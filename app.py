@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 ELEVEN_API_KEY = "sk_80bbd19f2243938ecba3502b576a2d88b0819c5ffb518b97"
 AGENT_CREATE_URL = "https://api.elevenlabs.io/v1/convai/agents/create"
+AGENT_NAME = ""
 
 latest_agent = {}
 
@@ -16,6 +17,7 @@ def index():
 @app.route('/create_agent', methods=['POST'])
 def create_agent():
     name = request.form.get('name')
+    AGENT_NAME = request.form.get('name')
     first_message = request.form.get('first_message')
     prompt_text = request.form.get('prompt')
     voice_id = request.form.get('voice_id')
