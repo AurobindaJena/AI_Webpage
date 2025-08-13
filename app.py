@@ -149,12 +149,9 @@ def get_agent():
 
 @app.route('/get_apikey', methods=['GET'])
 def get_apikey():
-    return jsonify(API_KEY) if API_KEY else jsonify({"error": "No API Key"}), 200
-
-@app.route('/get_agentName', methods=['GET'])
-def get_agentName():
-    return jsonify(AGENT_NAME) if AGENT_NAME else jsonify({"error": "No API Key"}), 200
-
+    if API_KEY:
+        return f'api_key = "{API_KEY}"', 200, { 'Content-Type': 'text/plain' }
+    return 'api_key = ""  # No API Key found', 200, { 'Content-Type': 'text/plain' }
 
 if __name__ == '__main__':
     #app.run(debug=True, host = '0.0.0.0' ,port=8080)
