@@ -29,7 +29,7 @@ def create_agent():
         "Content-Type": "application/json"
     }
 
-        payload = {
+    payload = {
         "name": name,
         "conversation_config": {
             "agent": {
