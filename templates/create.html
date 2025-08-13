@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Agent</title>
+</head>
+<body>
+    <h1>🟢 Create a New Agent</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <label>Name:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>Voice ID:</label><br>
+        <input type="text" name="voice_id" required><br><br>
+
+        <label>First Message:</label><br>
+        <input type="text" name="first_message" required><br><br>
+
+        <label>Prompt (type below):</label><br>
+        <textarea name="prompt" rows="6" cols="60" placeholder="You are FRIDAY..."></textarea><br><br>
+
+        <label>OR Upload Prompt (.txt):</label><br>
+        <input type="file" name="prompt_file" accept=".txt"><br><br>
+
+        <button type="submit">Create Agent</button>
+    </form>
+
+    {% if error %}
+        <h3 style="color: red;">❌ Error creating agent</h3>
+        <pre>{{ error | tojson(indent=2) }}</pre>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('index') }}">← Back to Home</a>
+</body>
+</html>
