@@ -145,13 +145,40 @@ def select_agent():
 @app.route("/get_agent")
 def get_agent():
     agent = load_active_agent()
-    return jsonify(agent if agent else {"error": "No agent selected"})
+    if agent:
+        return jsonify(agent)
+    return jsonify({ "error": "No agent selected or created." }), 404
+
 
 @app.route('/get_apikey', methods=['GET'])
 def get_apikey():
     if API_KEY:
         return f'api_key = "{API_KEY}"', 200, { 'Content-Type': 'text/plain' }
     return 'api_key = ""  # No API Key found', 200, { 'Content-Type': 'text/plain' }
+
+@app.route("/")
+def index():
+    active = load_active_agent()
+    res = requests.get(BASE_URL, headers=HEADERS)
+    agents = res.json().get("agents", [])
+    return render_template("index.html", active_agent=active, agents=agents)
+
+@app.route("/select_agent", methods=["POST"])
+def select_agent():
+    agent_id = request.form["agent_id"]
+
+    # Fetch agent details from ElevenLabs
+    res = requests.get(f"{BASE_URL}/{agent_id}", headers=HEADERS)
+    if res.status_code == 200:
+        agent_data = res.json()
+        agent_info = {
+            "agent_id": agent_id,
+            "name": agent_data.get("name", "Unnamed Agent"),
+            "conversation_config": agent_data.get("conversation_config", {})
+        }
+        save_active_agent(agent_info)
+        return redirect("/")
+    return "Agent not found", 404
 
 if __name__ == '__main__':
     #app.run(debug=True, host = '0.0.0.0' ,port=8080)

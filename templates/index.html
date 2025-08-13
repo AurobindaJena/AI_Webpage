@@ -5,6 +5,19 @@
 </head>
 <body>
     <h1>🤖 Welcome to FRIDAY Agent Manager</h1>
+
+<h3>🎯 Select an Existing Agent</h3>
+<form action="/select_agent" method="POST">
+    <select name="agent_id">
+        {% for agent in agents %}
+            <option value="{{ agent.agent_id }}">{{ agent.name }} ({{ agent.agent_id }})</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Select Agent</button>
+</form>
+
+
+
     <h3>Select an operation:</h3>
 
     <ul>
