@@ -156,7 +156,6 @@ def get_apikey():
         return jsonify({ "api_key": API_KEY })
     return jsonify({ "error": "No API Key found" }), 404
 
-
 @app.route("/")
 def index():
     active = load_active_agent()
