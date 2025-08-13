@@ -8,37 +8,26 @@ warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
 app = Flask(__name__)
 
-API_KEY = "sk_80bbd19f2243938ecba3502b576a2d88b0819c5ffb518b97"  # replace with your ElevenLabs key
-BASE_URL = "https://api.elevenlabs.io/v1/convai/agents"
-HEADERS = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
-ACTIVE_FILE = "active_agent.json"
+ELEVEN_API_KEY = "sk_80bbd19f2243938ecba3502b576a2d88b0819c5ffb518b97"
+AGENT_CREATE_URL = "https://api.elevenlabs.io/v1/convai/agents/create"
 
-def load_active_agent():
-    if os.path.exists(ACTIVE_FILE):
-        with open(ACTIVE_FILE, "r") as f:
-            return json.load(f)
-    return {}
+latest_agent = {}
 
-def save_active_agent(agent):
-    with open(ACTIVE_FILE, "w") as f:
-        json.dump(agent, f)
-
-@app.route("/")
+@app.route('/')
 def index():
     return render_template("index.html")
 
-@app.route("/create", methods=["GET", "POST"])
-def create():
-    if request.method == "POST":
-        print("✅ POST reached!")
-        name = request.form["name"]
-        voice_id = request.form["voice_id"]
-        first_message = request.form["first_message"]
-        prompt = request.form.get("prompt", "")
-        prompt_file = request.files.get("prompt_file")
+@app.route('/create_agent', methods=['POST'])
+def create_agent():
+    name = request.form.get('name')
+    first_message = request.form.get('first_message')
+    prompt_text = request.form.get('prompt')
+    voice_id = request.form.get('voice_id')
 
-        if prompt_file and prompt_file.filename.endswith(".txt"):
-            prompt = prompt_file.read().decode("utf-8")
+    headers = {
+        "xi-api-key": ELEVEN_API_KEY,
+        "Content-Type": "application/json"
+    }
 
         payload = {
         "name": name,
@@ -145,6 +134,14 @@ def select_agent():
 def get_agent():
     agent = load_active_agent()
     return jsonify(agent if agent else {"error": "No agent selected"})
+
+@app.route('/get_apikey', methods=['GET'])
+def get_apikey():
+    return jsonify(ELEVEN_API_KEY) if ELEVEN_API_KEY else jsonify({"error": "No API Key"}), 200
+
+@app.route('/get_agentName', methods=['GET'])
+def get_agentName():
+    return jsonify(AGENT_NAME) if AGENT_NAME else jsonify({"error": "No API Key"}), 200
 
 if __name__ == '__main__':
     #app.run(debug=True, host = '0.0.0.0' ,port=8080)
