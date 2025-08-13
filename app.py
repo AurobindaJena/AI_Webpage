@@ -9,7 +9,11 @@ warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 app = Flask(__name__)
 
 ELEVEN_API_KEY = "sk_80bbd19f2243938ecba3502b576a2d88b0819c5ffb518b97"
-AGENT_CREATE_URL = "https://api.elevenlabs.io/v1/convai/agents/create"
+BASE_URL = "https://api.elevenlabs.io/v1/convai/agents"
+HEADERS = {
+    "xi-api-key": API_KEY,
+    "Content-Type": "application/json"
+}
 
 latest_agent = {}
 
@@ -24,11 +28,6 @@ def create_agent():
     prompt_text = request.form.get('prompt')
     voice_id = request.form.get('voice_id')
 
-    headers = {
-        "xi-api-key": ELEVEN_API_KEY,
-        "Content-Type": "application/json"
-    }
-
     payload = {
         "name": name,
         "conversation_config": {
@@ -36,7 +35,7 @@ def create_agent():
                 "first_message": first_message,
                 "language": "en",
                 "prompt": {
-                    "prompt": prompt
+                    "prompt": prompt_text
                 }
             },
             "asr": {
@@ -54,12 +53,12 @@ def create_agent():
         }
     }
 
-        res = requests.post(f"{BASE_URL}/create", headers=HEADERS, json=payload)
-        if res.status_code == 200:
-            data = res.json()
-            save_active_agent({ "agent_id": data["agent_id"], "name": name })
-            return redirect("/")
-        return render_template("create.html", error=res.json())
+    res = requests.post(f"{BASE_URL}/create", headers=HEADERS, json=payload)
+    if res.status_code == 200:
+        data = res.json()
+        save_active_agent({ "agent_id": data["agent_id"], "name": name })
+        return redirect("/")
+    return render_template("create.html", error=res.json())
 
     return render_template("create.html")
 
