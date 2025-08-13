@@ -153,8 +153,9 @@ def get_agent():
 @app.route('/get_apikey', methods=['GET'])
 def get_apikey():
     if API_KEY:
-        return f'api_key = "{API_KEY}"', 200, { 'Content-Type': 'text/plain' }
-    return 'api_key = ""  # No API Key found', 200, { 'Content-Type': 'text/plain' }
+        return jsonify({ "api_key": API_KEY })
+    return jsonify({ "error": "No API Key found" }), 404
+
 
 @app.route("/")
 def index():
