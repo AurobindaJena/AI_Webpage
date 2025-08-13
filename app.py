@@ -149,7 +149,7 @@ def get_agent():
 
 @app.route('/get_apikey', methods=['GET'])
 def get_apikey():
-    return jsonify(ELEVEN_API_KEY) if ELEVEN_API_KEY else jsonify({"error": "No API Key"}), 200
+    return jsonify(API_KEY) if API_KEY else jsonify({"error": "No API Key"}), 200
 
 @app.route('/get_agentName', methods=['GET'])
 def get_agentName():
