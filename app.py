@@ -7,7 +7,8 @@ warnings.filterwarnings("ignore", category=NotOpenSSLWarning)
 
 app = Flask(__name__)
 
-API_KEY = "sk_80bbd19f2243938ecba3502b576a2d88b0819c5ffb518b97"
+#API_KEY = "sk_80bbd19f2243938ecba3502b576a2d88b0819c5ffb518b97"  Aurobinda Jena
+API_KEY = "sk_a311ab548efa461af233a20bf1480de621413c006a32dca0"
 BASE_URL = "https://api.elevenlabs.io/v1/convai/agents"
 HEADERS = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
 ACTIVE_FILE = "active_agent.json"
