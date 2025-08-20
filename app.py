@@ -12,6 +12,85 @@ API_KEY = "sk_a311ab548efa461af233a20bf1480de621413c006a32dca0"
 BASE_URL = "https://api.elevenlabs.io/v1/convai/agents"
 HEADERS = {"xi-api-key": API_KEY, "Content-Type": "application/json"}
 ACTIVE_FILE = "active_agent.json"
+KB_UPLOAD_URL = "https://api.elevenlabs.io/v1/convai/knowledge-base/file"
+KB_UPLOAD_HEADERS = {"xi-api-key": API_KEY}  # do not set Content-Type here
+KB_LIST_URL = "https://api.elevenlabs.io/v1/convai/knowledge-base"
+
+@app.route("/kb_upload", methods=["POST"])
+def kb_upload():
+    kb_name = request.form.get("kb_name", "").strip()
+    kb_file = request.files.get("kb_file")
+
+    if not kb_name:
+        return jsonify({"ok": False, "error": "Please enter a Knowledge Base name."}), 400
+    if not kb_file or kb_file.filename == "":
+        return jsonify({"ok": False, "error": "Please choose a .txt file to upload."}), 400
+
+    files = {
+       "file": (kb_file.filename+".txt", kb_file.stream, kb_file.mimetype)
+       # 'file', (kb_file.filename, open(kb_file.filename, 'rb')),
+    }
+    data = {"name": kb_name+'.txt'}
+
+    try:
+        resp = requests.post(KB_UPLOAD_URL, headers=KB_UPLOAD_HEADERS, data=data, files=files, timeout=30)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Upload failed: {e}"}), 500
+
+    # pass through ElevenLabs response without touching anything else
+    try:
+        body = resp.json()
+    except Exception:
+        body = {"raw": resp.text}
+
+    if resp.status_code == 200:
+        # Expect: {"id": "...", "name": "..."}
+        return jsonify({"ok": True, "kb": body}), 200
+    else:
+        return jsonify({"ok": False, "error": body}), resp.status_code
+
+
+@app.route("/kb_list", methods=["GET"])
+def kb_list():
+    try:
+        resp = requests.get(KB_LIST_URL, headers={"xi-api-key": API_KEY}, timeout=30)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"List failed: {e}"}), 500
+
+    try:
+        body = resp.json()
+    except Exception:
+        body = {"raw": resp.text}
+
+    if resp.status_code == 200:
+        # Expected shape is usually { "documents": [ ... ] } or a plain array depending on API
+        return jsonify({"ok": True, "data": body}), 200
+    else:
+        return jsonify({"ok": False, "error": body}), resp.status_code
+    
+
+@app.route("/kb_delete/<doc_id>", methods=["DELETE"])
+def kb_delete(doc_id):
+    try:
+        resp = requests.delete(f"{KB_LIST_URL}/{doc_id}", headers={"xi-api-key": API_KEY}, timeout=30)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Delete failed: {e}"}), 500
+
+    # 204 No Content or 200 OK => success
+    if resp.status_code in (200, 204):
+        # Try to parse JSON if present; otherwise return empty data
+        try:
+            body = resp.json()
+        except Exception:
+            body = {}
+        return jsonify({"ok": True, "data": body}), 200
+
+    # Other codes => error, try to pass JSON or text
+    try:
+        body = resp.json()
+    except Exception:
+        body = {"raw": resp.text or f"HTTP {resp.status_code}"}
+    return jsonify({"ok": False, "error": body}), resp.status_code
 
 def load_active_agent():
     if os.path.exists(ACTIVE_FILE):
@@ -38,65 +117,58 @@ def create():
         name = request.form["name"]
         voice_id = request.form["voice_id"]
         first_message = request.form["first_message"]
+
+        # Prompt can come from textarea or .txt upload
         prompt_text = request.form.get("prompt", "")
         prompt_file = request.files.get("prompt_file")
-
-        # Knowledge base fields
-        kb_name = request.form.get("kb_name")
-        kb_file = request.files.get("kb_file")
-
-        # Load text from prompt_file if provided
         if prompt_file and prompt_file.filename.endswith(".txt"):
             prompt_text = prompt_file.read().decode("utf-8")
 
-        # Prepare knowledge_base block if file and name are given
-        knowledge_base = []
-        if kb_file and kb_name:
-            kb_id = "kb_" + kb_file.filename.replace(".", "_")  # (you can improve this later)
-            knowledge_base.append({
-                "name": kb_name,
-                "id": kb_id,
-                "type": "file"
-            })
+        # KB selection from dropdown
+        kb_id = request.form.get("kb_id", "").strip()
+        kb_name = ""
+        if kb_id:
+            # match id -> name from current KB catalog
+            kbs = get_knowledge_bases()
+            kb_name = next((kb["name"] for kb in kbs if kb["id"] == kb_id), "")
 
-        # Build final payload with both prompt and knowledge base
+        knowledge_base = []
+        if kb_id or kb_name:
+            # EXACT structure: no "type", id allowed to be ""
+            knowledge_base = [{"name": kb_name, "id": kb_id, "type": "file"}]
+
         payload = {
-            "name": name,
             "conversation_config": {
                 "agent": {
                     "first_message": first_message,
                     "language": "en",
                     "prompt": {
-                        "prompt": prompt_text,
-                        "knowledge_base": knowledge_base
+                        "knowledge_base": knowledge_base,
+                        "prompt": prompt_text
                     }
                 },
                 "asr": {
                     "quality": "high",
                     "provider": "elevenlabs",
-                    "user_input_audio_format": "pcm_16000",
-                    "keywords": []
+                    "user_input_audio_format": "pcm_16000"
                 },
-                "turn": {},
                 "tts": {
                     "voice_id": voice_id
-                },
-                "conversation": {},
-                "language_presets": {}
-            }
+                }
+            },
+            "name": name
         }
 
-        print("📤 Payload being sent:")
-        print(json.dumps(payload, indent=2))
-
+        print("📤 CREATE payload:\n", json.dumps(payload, indent=2))
         res = requests.post(f"{BASE_URL}/create", headers=HEADERS, json=payload)
         if res.status_code == 200:
             data = res.json()
-            save_active_agent({ "agent_id": data["agent_id"], "name": name })
+            save_active_agent({"agent_id": data["agent_id"], "name": name})
             return redirect("/")
-        return render_template("create.html", error=res.json())
+        return render_template("create.html", error=res.json(), knowledge_bases=get_knowledge_bases())
 
-    return render_template("create.html")
+    # GET -> render with KB dropdown
+    return render_template("create.html", knowledge_bases=get_knowledge_bases())
 
 
 # ✅ Update - select
@@ -116,31 +188,73 @@ def update_form(agent_id):
         name = request.form["name"]
         voice_id = request.form["voice_id"]
         first_message = request.form["first_message"]
-        prompt = request.form.get("prompt", "")
+
+        prompt_text = request.form.get("prompt", "")
         prompt_file = request.files.get("prompt_file")
         if prompt_file and prompt_file.filename.endswith(".txt"):
-            prompt = prompt_file.read().decode("utf-8")
+            prompt_text = prompt_file.read().decode("utf-8")
+
+        kb_id = request.form.get("kb_id", "").strip()
+        kb_name = ""
+        if kb_id:
+            kbs = get_knowledge_bases()
+            kb_name = next((kb["name"] for kb in kbs if kb["id"] == kb_id), "")
+
+        knowledge_base = []
+        if kb_id or kb_name:
+            knowledge_base = [{"name": kb_name, "id": kb_id, "type": "file"}]
 
         payload = {
-            "name": name,
             "conversation_config": {
                 "agent": {
                     "first_message": first_message,
                     "language": "en",
-                    "prompt": {"prompt": prompt}
+                    "prompt": {
+                        "knowledge_base": knowledge_base,
+                        "prompt": prompt_text
+                    }
                 },
-                "tts": {"voice_id": voice_id}
-            }
+                "asr": {
+                    "quality": "high",
+                    "provider": "elevenlabs",
+                    "user_input_audio_format": "pcm_16000"
+                },
+                "tts": {
+                    "voice_id": voice_id
+                }
+            },
+            "name": name
         }
 
+        print("📤 UPDATE payload:\n", json.dumps(payload, indent=2))
         res = requests.patch(f"{BASE_URL}/{agent_id}", headers=HEADERS, json=payload)
         if res.status_code == 200:
             save_active_agent({"agent_id": agent_id, "name": name})
             return redirect("/")
-        return render_template("update_form.html", agent_id=agent_id, error=res.json())
+        # re-render with dropdown populated on error
+        return render_template("update_form.html",
+                               agent_id=agent_id,
+                               agent={"name": name, "conversation_config": {"agent": {"prompt": {"prompt": prompt_text}}}},
+                               error=res.json(),
+                               knowledge_bases=get_knowledge_bases(),
+                               selected_kb_id=kb_id)
 
+    # GET → prefill form + KB dropdown + currently linked KB (if any)
     agent_detail = requests.get(f"{BASE_URL}/{agent_id}", headers=HEADERS).json()
-    return render_template("update_form.html", agent=agent_detail, agent_id=agent_id)
+    selected_kb_id = ""
+    try:
+        kb_list = agent_detail["conversation_config"]["agent"]["prompt"].get("knowledge_base", [])
+        if kb_list and isinstance(kb_list, list):
+            selected_kb_id = kb_list[0].get("id", "")
+    except Exception:
+        pass
+
+    return render_template("update_form.html",
+                           agent=agent_detail,
+                           agent_id=agent_id,
+                           knowledge_bases=get_knowledge_bases(),
+                           selected_kb_id=selected_kb_id)
+
 
 # ✅ Delete agent
 @app.route("/delete", methods=["GET", "POST"])
@@ -170,6 +284,31 @@ def select_agent():
         save_active_agent(agent_info)
         return redirect("/")
     return "Agent not found", 404
+
+def get_knowledge_bases():
+    """Return a normalized list of KB docs: [{'id': '...', 'name': '...'}, ...]."""
+    try:
+        resp = requests.get(
+            "https://api.elevenlabs.io/v1/convai/knowledge-base",
+            headers={"xi-api-key": API_KEY},
+            timeout=30,
+        )
+        data = resp.json()
+        # API may return a list or {"documents": [...]}
+        docs = data.get("documents") if isinstance(data, dict) else data
+        docs = docs if isinstance(docs, list) else []
+        out = []
+        for d in docs:
+            out.append({
+                "id": d.get("id") or d.get("document_id") or "",
+                "name": d.get("name") or "Unnamed",
+            })
+        return out
+    except Exception as e:
+        print("KB fetch failed:", e)
+        return []
+
+
 
 # ✅ Return current agent for Android
 @app.route("/get_agent")

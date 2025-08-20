@@ -28,6 +28,21 @@
     </div>
 
     <button type="submit" class="btn btn-warning">Update Agent</button>
+
+    <hr class="my-4">
+<div class="mb-3">
+  <label for="kb_id" class="form-label">📚 Update a Menu list</label>
+  <select name="kb_id" id="kb_id" class="form-select">
+    <option value="">-- None --</option>
+    {% for kb in knowledge_bases %}
+      <option value="{{ kb.id }}" {% if selected_kb_id and kb.id == selected_kb_id %}selected{% endif %}>
+        {{ kb.name }}
+      </option>
+    {% endfor %}
+  </select>
+  <small class="form-text text-muted">This will send: "knowledge_base": [{"name": "<selected name>", "id": "<selected id>"}]</small>
+</div>
+
 </form>
 
 {% if error %}

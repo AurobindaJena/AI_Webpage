@@ -26,4 +26,192 @@
     </select>
     <button type="submit" class="btn btn-outline-primary">Activate Selected Agent</button>
 </form>
+<!-- Add this card somewhere on index.html (e.g., below your agent selector) -->
+<div class="card mt-4">
+  <div class="card-body">
+    <h4 class="card-title">📚 Upload your Menu (.txt)</h4>
+
+    <form id="kbForm" action="{{ url_for('kb_upload') }}" method="POST" enctype="multipart/form-data">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Enter a name for your Menu</label>
+          <input type="text" name="kb_name" class="form-control" placeholder="e.g. MENU" required>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Uplaod the File</label>
+          <input type="file" name="kb_file" class="form-control" accept=".txt" required>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-outline-success w-100">Upload</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="kbStatus" class="mt-3" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- Put this script at the end of index.html body -->
+<script>
+  const kbForm = document.getElementById('kbForm');
+  const kbStatus = document.getElementById('kbStatus');
+
+  kbForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    kbStatus.style.display = 'block';
+    kbStatus.className = 'mt-3 alert alert-secondary';
+    kbStatus.textContent = 'Uploading…';
+
+    try {
+      const formData = new FormData(kbForm);
+      const res = await fetch(kbForm.action, {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data.ok) {
+        // success message only; do not touch anything else
+        const kb = data.kb || {};
+        kbStatus.className = 'mt-3 alert alert-success';
+        kbStatus.innerHTML = `
+          ✅ Uploaded successfully<br>
+          <strong>ID:</strong> <code>${kb.id ?? ''}</code> &nbsp;
+          <strong>Name:</strong> <code>${kb.name ?? ''}</code>
+        `;
+        kbForm.reset();
+      } else {
+        kbStatus.className = 'mt-3 alert alert-danger';
+        kbStatus.textContent = 'Upload failed: ' + (data.error ? JSON.stringify(data.error) : res.statusText);
+      }
+    } catch (err) {
+      kbStatus.className = 'mt-3 alert alert-danger';
+      kbStatus.textContent = 'Upload failed: ' + err;
+    }
+  });
+</script>
+
+<!-- 📄 List Knowledge Base Documents (names with Delete) -->
+<div class="card mt-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between">
+      <h4 class="card-title mb-0">📄 Saved Menu list</h4>
+      <button id="btnLoadKb" class="btn btn-outline-primary">Show list</button>
+    </div>
+
+    <div id="kbListStatus" class="mt-3" style="display:none;"></div>
+
+    <ul class="list-group mt-3" id="kbList" style="display:none;">
+      <!-- <li> rows inserted by JS --> 
+    </ul>
+  </div>
+</div>
+
+<script>
+  const btnLoadKb   = document.getElementById('btnLoadKb');
+  const kbList      = document.getElementById('kbList');
+
+  async function loadKbList() {
+    kbStatus.style.display = 'block';
+    kbStatus.className = 'mt-3 alert alert-secondary';
+    kbStatus.textContent = 'Loading documents…';
+    kbList.style.display = 'none';
+    kbList.innerHTML = '';
+
+    try {
+      const res = await fetch('/kb_list');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.ok) {
+        kbStatus.className = 'mt-3 alert alert-danger';
+        kbStatus.textContent = 'Failed to load: ' + (data.error ? JSON.stringify(data.error) : res.statusText);
+        return;
+      }
+
+      const payload = data.data;
+      const docs = Array.isArray(payload) ? payload
+                 : (Array.isArray(payload.documents) ? payload.documents : []);
+
+      if (docs.length === 0) {
+        kbStatus.className = 'mt-3 alert alert-info';
+        kbStatus.textContent = 'No knowledge base documents found.';
+        return;
+      }
+
+      for (const d of docs) {
+        const name = d.name ?? 'Unnamed Document';
+        const id   = d.id ?? d.document_id ?? ''; // adjust if API uses a different key
+
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex justify-content-between align-items-center';
+        li.dataset.docId = id;
+        li.innerHTML = `
+          <span>${name}</span>
+          <button class="btn btn-sm btn-outline-danger" data-action="delete" ${id ? '' : 'disabled'}>Delete</button>
+        `;
+        kbList.appendChild(li);
+      }
+
+      kbStatus.style.display = 'none';
+      kbList.style.display = 'block';
+
+    } catch (err) {
+      kbStatus.className = 'mt-3 alert alert-danger';
+      kbStatus.textContent = 'Failed to load: ' + err;
+    }
+  }
+
+  // Load on button click
+  btnLoadKb.addEventListener('click', loadKbList);
+
+
+    // Delegate delete clicks to the list (to handle dynamic items)
+  kbList.addEventListener('click', async (e) => {
+    if (e.target.getAttribute("data-action") === "delete") {
+      const btn   = e.target;
+      const li    = btn.closest("li");
+      const docId = li.dataset.docId;
+
+      btn.disabled = true;
+      btn.textContent = "Deleting...";
+
+      try {
+        const res  = await fetch(`/kb_delete/${encodeURIComponent(docId)}`, { method: "DELETE" });
+        let data   = {};
+        try { data = await res.json(); } catch { data = {}; }
+
+        if (res.ok && (data.ok === true || Object.keys(data).length === 0)) {
+          // ✅ Success: remove row
+          li.remove();
+          kbStatus.style.display = "block";
+          kbStatus.className = "mt-3 alert alert-success";
+          kbStatus.textContent = "Deleted successfully.";
+
+          // Auto-hide after 3 seconds
+          setTimeout(() => {
+            kbStatus.style.display = "none";
+          }, 3000);
+
+          if (!kbList.querySelector("li")) {
+            kbList.style.display = "none";
+            kbStatus.className = "mt-3 alert alert-info";
+            kbStatus.textContent = "No knowledge base documents found.";
+            kbStatus.style.display = "block";
+          }
+        } else {
+          btn.disabled = false;
+          btn.textContent = "Delete";
+          const errMsg = (data && data.error) ? JSON.stringify(data.error) : res.statusText;
+          alert("Delete failed: " + errMsg);
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = "Delete";
+        alert("Delete failed: " + err);
+      }
+    }
+  });
+
+</script>
 {% endblock %}

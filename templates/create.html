@@ -28,14 +28,15 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label">📚 Knowledge Base</label>
-        <textarea name="kb_name" class="form-control" rows="5" placeholder="Enter the menu"></textarea>
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label">OR Upload Knowledge Base (.txt)</label>
-        <input type="file" name="kb_file" class="form-control" accept=".txt">
-    </div>
+  <label for="kb_id" class="form-label">📚 Attach a Menu list</label>
+  <select name="kb_id" id="kb_id" class="form-select">
+    <option value="">-- None --</option>
+    {% for kb in knowledge_bases %}
+      <option value="{{ kb.id }}">{{ kb.name }}</option>
+    {% endfor %}
+  </select>
+  <small class="form-text text-muted">This will send: "knowledge_base": [{"name": "<selected name>", "id": "<selected id>"}]</small>
+</div>
 
     <button type="submit" class="btn btn-success">Create Agent</button>
 </form>
