@@ -1,29 +1,29 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Agent Manager - FRIDAY</title>
-</head>
-<body>
-    <h1>🤖 Welcome to Agent Manager</h1>
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center mb-4">
+    <a class="btn btn-primary me-2" href="{{ url_for('create') }}">➕ Create</a>
+    <a class="btn btn-warning me-2" href="{{ url_for('update_select') }}">✏️ Update</a>
+    <a class="btn btn-danger me-2" href="{{ url_for('delete') }}">🗑️ Delete</a>
+</div>
 
-<h3>🎯 Select an Existing Agent</h3>
-<form action="/select_agent" method="POST">
-    <select name="agent_id">
+<h3>✅ Active Agent:</h3>
+{% if active_agent %}
+    <div class="alert alert-success">
+        <strong>{{ active_agent.name }}</strong><br>
+        ID: {{ active_agent.agent_id }}
+    </div>
+{% else %}
+    <p>No agent selected.</p>
+{% endif %}
+
+<hr>
+<h3>🎯 All Agents:</h3>
+<form method="POST" action="{{ url_for('select_agent') }}">
+    <select class="form-select mb-3" name="agent_id" required>
         {% for agent in agents %}
-            <option value="{{ agent.agent_id }}">{{ agent.name }} ({{ agent.agent_id }})</option>
+            <option value="{{ agent.agent_id }}">{{ agent.name }}</option>
         {% endfor %}
     </select>
-    <button type="submit">Select Agent</button>
+    <button type="submit" class="btn btn-outline-primary">Activate Selected Agent</button>
 </form>
-
-
-
-    <h3>Select an operation:</h3>
-
-    <ul>
-        <li><a href="{{ url_for('create') }}">🟢 Create Agent</a></li>
-        <li><a href="{{ url_for('update_select') }}">🟡 Update Agent</a></li>
-        <li><a href="{{ url_for('delete') }}">🔴 Delete Agent</a></li>
-    </ul>
-</body>
-</html>
+{% endblock %}

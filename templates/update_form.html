@@ -1,35 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Update Agent</title>
-</head>
-<body>
-    <h1>🛠️ Edit Agent</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <label>Name:</label><br>
-        <input type="text" name="name" value="{{ agent.name }}" required><br><br>
+{% extends "base.html" %}
+{% block content %}
+<h2>✏️ Edit Agent: {{ agent.name }}</h2>
+<form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" name="name" class="form-control" value="{{ agent.name }}" required>
+    </div>
 
-        <label>Voice ID:</label><br>
-        <input type="text" name="voice_id" value="{{ agent.conversation_config.tts.voice_id }}" required><br><br>
+    <div class="mb-3">
+        <label class="form-label">Voice ID</label>
+        <input type="text" name="voice_id" class="form-control" value="{{ agent.conversation_config.tts.voice_id }}" required>
+    </div>
 
-        <label>First Message:</label><br>
-        <input type="text" name="first_message" value="{{ agent.conversation_config.agent.first_message }}" required><br><br>
+    <div class="mb-3">
+        <label class="form-label">First Message</label>
+        <input type="text" name="first_message" class="form-control" value="{{ agent.conversation_config.agent.first_message }}" required>
+    </div>
 
-        <label>Prompt (edit below):</label><br>
-        <textarea name="prompt" rows="6" cols="60">{{ agent.conversation_config.agent.prompt.prompt }}</textarea><br><br>
+    <div class="mb-3">
+        <label class="form-label">Prompt</label>
+        <textarea name="prompt" class="form-control" rows="5">{{ agent.conversation_config.agent.prompt.prompt }}</textarea>
+    </div>
 
-        <label>OR Upload Prompt (.txt):</label><br>
-        <input type="file" name="prompt_file" accept=".txt"><br><br>
+    <div class="mb-3">
+        <label class="form-label">OR Upload Prompt (.txt)</label>
+        <input type="file" name="prompt_file" class="form-control" accept=".txt">
+    </div>
 
-        <button type="submit">Update Agent</button>
-    </form>
+    <button type="submit" class="btn btn-warning">Update Agent</button>
+</form>
 
-    {% if error %}
-        <h3 style="color: red;">❌ Error updating agent</h3>
+{% if error %}
+    <div class="alert alert-danger mt-4">
+        <h5>❌ Error:</h5>
         <pre>{{ error | tojson(indent=2) }}</pre>
-    {% endif %}
-
-    <br>
-    <a href="{{ url_for('index') }}">← Back to Home</a>
-</body>
-</html>
+    </div>
+{% endif %}
+{% endblock %}
