@@ -38,19 +38,38 @@ def create():
         name = request.form["name"]
         voice_id = request.form["voice_id"]
         first_message = request.form["first_message"]
-        prompt = request.form.get("prompt", "")
+        prompt_text = request.form.get("prompt", "")
         prompt_file = request.files.get("prompt_file")
 
-        if prompt_file and prompt_file.filename.endswith(".txt"):
-            prompt = prompt_file.read().decode("utf-8")
+        # Knowledge base fields
+        kb_name = request.form.get("kb_name")
+        kb_file = request.files.get("kb_file")
 
+        # Load text from prompt_file if provided
+        if prompt_file and prompt_file.filename.endswith(".txt"):
+            prompt_text = prompt_file.read().decode("utf-8")
+
+        # Prepare knowledge_base block if file and name are given
+        knowledge_base = []
+        if kb_file and kb_name:
+            kb_id = "kb_" + kb_file.filename.replace(".", "_")  # (you can improve this later)
+            knowledge_base.append({
+                "name": kb_name,
+                "id": kb_id,
+                "type": "file"
+            })
+
+        # Build final payload with both prompt and knowledge base
         payload = {
             "name": name,
             "conversation_config": {
                 "agent": {
                     "first_message": first_message,
                     "language": "en",
-                    "prompt": { "prompt": prompt }
+                    "prompt": {
+                        "prompt": prompt_text,
+                        "knowledge_base": knowledge_base
+                    }
                 },
                 "asr": {
                     "quality": "high",
@@ -59,11 +78,16 @@ def create():
                     "keywords": []
                 },
                 "turn": {},
-                "tts": { "voice_id": voice_id },
+                "tts": {
+                    "voice_id": voice_id
+                },
                 "conversation": {},
                 "language_presets": {}
             }
         }
+
+        print("📤 Payload being sent:")
+        print(json.dumps(payload, indent=2))
 
         res = requests.post(f"{BASE_URL}/create", headers=HEADERS, json=payload)
         if res.status_code == 200:
@@ -73,6 +97,7 @@ def create():
         return render_template("create.html", error=res.json())
 
     return render_template("create.html")
+
 
 # ✅ Update - select
 @app.route("/update", methods=["GET", "POST"])
