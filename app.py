@@ -153,6 +153,9 @@ def create():
                     "provider": "elevenlabs",
                     "user_input_audio_format": "pcm_16000"
                 },
+                "turn": {
+                    "silence_end_call_timeout": 20,
+                },
                 "tts": {
                     "voice_id": voice_id
                 }
