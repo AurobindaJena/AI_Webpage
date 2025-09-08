@@ -6,15 +6,23 @@
     <a class="btn btn-danger me-2" href="{{ url_for('delete') }}">🗑️ Delete</a>
 </div>
 
-<h3>✅ Active Agent:</h3>
+<h2>✅ Active Agent:</h2>
 {% if active_agent %}
-    <div class="alert alert-success">
-        <strong>{{ active_agent.name }}</strong><br>
-        ID: {{ active_agent.agent_id }}
-    </div>
+  <div class="active-agent">
+    <strong>{{ active_agent.name }}</strong><br>
+    <small>ID: {{ active_agent.agent_id }}</small>
+
+    <!-- Clear Active Agent button -->
+    <form action="{{ url_for('clear_active') }}" method="POST" style="margin-top:10px;">
+      <button type="submit" class="btn btn-outline-primary">Clear Active Agent</button>
+    </form>
+  </div>
 {% else %}
-    <p>No agent selected.</p>
+  <div class="active-agent empty">
+    <em>No active agent selected.</em>
+  </div>
 {% endif %}
+
 
 <hr>
 <h3>🎯 All Agents:</h3>

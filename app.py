@@ -102,6 +102,14 @@ def save_active_agent(agent):
     with open(ACTIVE_FILE, "w") as f:
         json.dump(agent, f)
 
+@app.route("/clear_active", methods=["POST"])
+def clear_active():
+    # Reset active agent locally
+    with open(ACTIVE_FILE, "w", encoding="utf-8") as f:
+        f.write("{}")   # write empty JSON
+    return redirect(url_for("index"))
+
+
 # ✅ Home page: show current + agent list
 @app.route("/")
 def index():
